@@ -104,10 +104,13 @@ class GlobalGraph(nn.Module):
                 mapping[i]['attention_scores'] = np.array(each[0])
         if utils.args.attention_decay and utils.second_span:
             utils.logging(self.attention_decay, prob=0.01)
+            # only decay the AGENT? (decay 50%)
             value_layer = torch.cat([value_layer[:, 0:1, 0:1, :] * self.attention_decay, value_layer[:, 0:1, 1:, :]],
                                     dim=2)
         context_layer = torch.matmul(attention_probs, value_layer)
+        # (batch, max_vector_num, num_heads, head_size)
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
+        # (batch, max_vector_num, num_heads*head_size)
         new_context_layer_shape = context_layer.size()[
                                   :-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)

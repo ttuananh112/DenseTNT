@@ -26,8 +26,8 @@ def compile_pyx_files():
         os.chdir('../')
 
 
-# Comment out this line if pyx files have been compiled manually.
-compile_pyx_files()
+# # Comment out this line if pyx files have been compiled manually.
+# compile_pyx_files()
 
 import utils, structs
 from modeling.vectornet import VectorNet

@@ -29,6 +29,8 @@ class NewSubGraph(nn.Module):
     def forward(self, input_list: list):
         batch_size = len(input_list)
         device = input_list[0].device
+        
+        # return tensor in shape (batch, max_length, hidden_size)
         hidden_states, lengths = utils.merge_tensors(input_list, device)
         hidden_size = hidden_states.shape[2]
         max_vector_num = hidden_states.shape[1]
@@ -136,7 +138,7 @@ class VectorNet(nn.Module):
             map_start_polyline_idx = mapping[i]['map_start_polyline_idx']
             for j, polyline_span in enumerate(polyline_spans[i]):
                 tensor = torch.tensor(matrix[i][polyline_span], device=device)
-                input_list.append(tensor)
+                input_list.append(tensor)  # append all data dynamic and lanes
                 if j >= map_start_polyline_idx:
                     map_input_list.append(tensor)
 
@@ -150,7 +152,7 @@ class VectorNet(nn.Module):
                 a, b = self.point_level_sub_graph(input_list_list[i])
                 element_states_batch.append(a)
                 point_level_features_list.append(b)
-                mapping[i]['point_level_features'] = point_level_features_list[i]
+                mapping[i]['point_level_features'] = point_level_features_list[i]  # b?
         else:
             element_states_batch = utils.merge_tensors_not_add_dim(input_list_list, module=self.sub_graph,
                                                                    sub_batch_size=16, device=device)
@@ -178,13 +180,16 @@ class VectorNet(nn.Module):
         return element_states_batch, lane_states_batch
 
     # @profile
+    #                 # batch of mapping (list)
     def forward(self, mapping: List[Dict], device):
         import time
         global starttime
         starttime = time.time()
 
+        # matrix (N, 128)
+        # contains both dynamic and lane information...
         matrix = utils.get_from_mapping(mapping, 'matrix')
-        # TODO(cyrushx): Can you explain the structure of polyline spans?
+
         # vectors of i_th element is matrix[polyline_spans[i]]
         polyline_spans = utils.get_from_mapping(mapping, 'polyline_spans')
 

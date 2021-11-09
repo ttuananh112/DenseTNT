@@ -793,9 +793,17 @@ def turn_traj(traj: np.ndarray, object_type='AGENT'):
 def merge_tensors(tensors: List[torch.Tensor], device, hidden_size=None) -> Tuple[Tensor, List[int]]:
     """
     merge a list of tensors into a tensor
+
+    Return:  
+        (res, lengths)
+            res: zeros tensor in shape (batch, length, hidden_size)
+        with length = max(get_length(tensor)) for tensor in tensors
+        the short tensor will be fill with zeros
+            lengths: number of vector in each tensor
     """
     lengths = []
     hidden_size = args.hidden_size if hidden_size is None else hidden_size
+    # tensors = batch of tensor
     for tensor in tensors:
         lengths.append(tensor.shape[0] if tensor is not None else 0)
     res = torch.zeros([len(tensors), max(lengths), hidden_size], device=device)
