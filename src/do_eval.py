@@ -50,7 +50,7 @@ def do_eval(args):
 
     print("Loading Evalute Dataset", args.data_dir)
     if args.argoverse:
-        from dataset_argoverse import Dataset
+        from dataset.argoverse import Dataset
     eval_dataset = Dataset(args, args.eval_batch_size)
     eval_sampler = SequentialSampler(eval_dataset)
     eval_dataloader = torch.utils.data.DataLoader(eval_dataset, batch_size=args.eval_batch_size,
@@ -93,7 +93,7 @@ def do_eval(args):
         utils.select_goals_by_optimization(None, None, close=True)
 
     if args.argoverse:
-        from dataset_argoverse import post_eval
+        from dataset.argoverse import post_eval
         post_eval(args, file2pred, file2labels, DEs)
 
 

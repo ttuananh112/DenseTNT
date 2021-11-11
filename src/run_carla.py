@@ -193,10 +193,8 @@ def demo_basic(rank, world_size, kwargs, queue):
             dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
         setup(rank, world_size)
-
         utils.args = args
         model = VectorNet(args).to(rank)
-
         model = DDP(model, device_ids=[rank], find_unused_parameters=True)
     else:
         model = VectorNet(args).to(rank)
@@ -219,11 +217,13 @@ def demo_basic(rank, world_size, kwargs, queue):
 
     if args.distributed_training:
         dist.barrier()
-    args.reuse_temp_file = True
+
+    # reuse ex_list file
+    args.reuse_temp_file = False
 
     if args.argoverse:
         if args.argoverse:
-            from dataset.argoverse import Dataset
+            from dataset.carla import Dataset
         train_dataset = Dataset(args, args.train_batch_size, to_screen=False)
 
         train_sampler = DistributedSampler(train_dataset, shuffle=args.do_train)
@@ -266,7 +266,7 @@ def run(args):
 
     print("Loading dataset", args.data_dir)
     if args.argoverse:
-        from dataset.argoverse import Dataset
+        from dataset.carla import Dataset
 
     if args.distributed_training:
         queue = mp.Manager().Queue()
@@ -275,7 +275,7 @@ def run(args):
                                  args=(args.distributed_training, kwargs, queue),
                                  nprocs=args.distributed_training,
                                  join=False)
-        train_dataset = Dataset(args, args.train_batch_size)
+        # train_dataset = Dataset(args, args.train_batch_size)
         queue.put(True)
         while not spawn_context.join():
             pass
