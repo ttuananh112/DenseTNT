@@ -2,7 +2,7 @@ DATA_DIR=/home/anhtt163/dataset/OBP/data/batch01/dynamic_by_ts/; \
 OUTPUT_DIR=outputs/carla.models.densetnt.1; \
 python src/run_carla.py --argoverse --future_frame_num 30 \
 --do_train --data_dir ${DATA_DIR} --output_dir ${OUTPUT_DIR} \
---hidden_size 128 --train_batch_size 64 --sub_graph_batch_size 4096 --use_map \
+--hidden_size 128 --train_batch_size 8 --sub_graph_batch_size 4096 --use_map \
 --core_num 2 --use_centerline \
 --distributed_training 1 \
 --other_params semantic_lane direction l1_loss \

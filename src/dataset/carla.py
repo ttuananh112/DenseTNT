@@ -1,12 +1,10 @@
 import os
-import math
 import pickle
 import zlib
 
 import numpy as np
 import torch
 import logging
-from itertools import repeat
 
 import utils_cython
 import utils
@@ -24,6 +22,8 @@ TRACK_ID = 1
 OBJECT_TYPE = 2  # AGENT/AV/OTHERS
 X = 3
 Y = 4
+HEADING = 5
+STATUS = 6
 
 type2index = {}
 type2index["OTHERS"] = 0
@@ -380,21 +380,8 @@ def carla_get_instance(lines, file_name, args):
             mapping['cent_y'] = agent_lines[-1][Y]
             mapping['agent_pred_index'] = len(agent_lines)  # 20
             mapping['two_seconds'] = line[TIMESTAMP]
-            if 'direction' in args.other_params:
-                span = agent_lines[-6:]  # get last 6 ticks, 0.6s?
-                intervals = [2]
-                angles = []
-                for interval in intervals:
-                    for j in range(len(span)):
-                        if j + interval < len(
-                                span):  # j = 0->3, j+interval = 2->5
-                            der_x, der_y = span[j + interval][X] - span[j][
-                                X], span[j + interval][Y] - span[j][Y]
-                            # difference of x, y in interval time (=2)
-                            angles.append([der_x, der_y])
+            mapping['angle'] = float(agent_lines[-1][HEADING])
 
-            der_x, der_y = agent_lines[-1][X] - agent_lines[-2][
-                X], agent_lines[-1][Y] - agent_lines[-2][Y]
     if not args.do_test:
         if 'set_predict' in args.other_params:
             pass
@@ -416,14 +403,6 @@ def carla_get_instance(lines, file_name, args):
             origin_labels[i][0], origin_labels[i][1] = line[X], line[Y]
         mapping['origin_labels'] = origin_labels
 
-    angle = -get_angle(der_x, der_y) + math.radians(90)
-    if 'direction' in args.other_params:
-        angles = np.array(angles)
-        der_x, der_y = np.mean(angles, axis=0)
-        angle = -get_angle(der_x, der_y) + math.radians(90)
-
-    mapping['angle'] = angle
-
     # normalize to agent's orientation
     for id in id2info:
         info = id2info[id]
@@ -431,12 +410,12 @@ def carla_get_instance(lines, file_name, args):
             line[X], line[Y] = rotate(
                 line[X] - mapping['cent_x'],
                 line[Y] - mapping['cent_y'],
-                angle
+                mapping['angle']
             )
-        if 'scale' in mapping:
-            scale = mapping['scale']
-            line[X] *= scale
-            line[Y] *= scale
+            if 'scale' in mapping:
+                scale = mapping['scale']
+                line[X] *= scale
+                line[Y] *= scale
     return preprocess(args, id2info, mapping)
 
 
@@ -454,7 +433,6 @@ class Dataset(torch.utils.data.Dataset):
             pickle_file = open(
                 os.path.join(args.temp_file_dir, get_name('ex_list')), 'rb')
             self.ex_list = pickle.load(pickle_file)
-            # self.ex_list = self.ex_list[len(self.ex_list) // 2:]
             pickle_file.close()
         else:
             if args.core_num >= 1:
@@ -466,7 +444,7 @@ class Dataset(torch.utils.data.Dataset):
                         os.path.join(each_dir, file) for file in cur_files
                         if file.endswith("csv") and not file.startswith('.')
                     ])
-                # self._files = sorted(self._files)
+                self._files = sorted(self._files)
                 print("num_files", len(self._files))
 
                 # create process to compress data
