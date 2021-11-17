@@ -56,15 +56,15 @@ def get_sub_map(args: utils.Args,
     if args.not_use_api:
         pass
     else:
+        # get AGENT's heading
+        angle = mapping['angle']
+
         # get center_lane (waypoint) polyline in radius <= max_distance (=50.0)
         # with origin is AGENT's position after 2s
         # list lane_line in polygon (x, y)
         lane_ids, polygons = carla_helper.get_local_lanes(
-            agent_x=x, agent_y=y
+            agent_x=x, agent_y=y, heading=angle
         )
-
-        # get AGENT's heading
-        angle = mapping['angle']
 
         # rotate map to fit the agent's orientation
         for index_polygon, polygon in enumerate(polygons):
@@ -438,7 +438,6 @@ class Dataset(torch.utils.data.Dataset):
             if args.core_num >= 1:
                 #
                 for each_dir in data_dir:
-
                     root, dirs, cur_files = os.walk(each_dir).__next__()
                     self._files.extend([
                         os.path.join(each_dir, file) for file in cur_files
