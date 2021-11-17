@@ -98,11 +98,12 @@ class MapHelper:
 
     @staticmethod
     def _get_lane_on_direction(
+            ids: List,
             lanes: List[np.ndarray],
             agent_x: float,
             agent_y: float,
             heading: float
-    ) -> List[np.ndarray]:
+    ) -> Tuple[List, List[np.ndarray]]:
         """
         Get lane on the same direction with AGENT
         Args:
@@ -112,7 +113,9 @@ class MapHelper:
             heading (float): yaw of AGENT
 
         Returns:
-            (List[np.ndarray]): lanes on AGENT's direction
+            Tuple[List, List[np.ndarray]]:
+                - index of lane
+                - lanes on AGENT's direction
         """
 
         def __dist(p1, p2):
@@ -130,7 +133,16 @@ class MapHelper:
             return math.acos(_a / _b)
 
         def __initial_adding():
+            """
+            Initial phase (get the first lane)
+            Get the nearest lane line
+            with diff angular of vector heading and the first vector lane <= 10 degree
+            Returns:
+                False: to re-assign _init flag
+            """
             _lanes_clone = deepcopy(lanes)
+            _ids_clone = deepcopy(ids)
+
             unit_vector = (1, 0)
             forward_vector = rotate(unit_vector[0], unit_vector[1], heading)
 
@@ -139,42 +151,32 @@ class MapHelper:
                 _dist_to_agent = (curr_lane[-1] - _np_points) ** 2
                 _dist_to_agent = np.sqrt(_dist_to_agent[:, 0] + _dist_to_agent[:, 1])
                 _idx_point = np.argmin(_dist_to_agent)
-                _idx_lane = _idx_point // 10  # 10 point per lane
+                _i = _idx_point // 10  # 10 point per lane
 
                 # check is legal lane?
-                _lane = _lanes_clone[_idx_lane]
+                _lane = _lanes_clone[_i]
                 v2 = _lane[1] - _lane[0]
                 _angular = __angular(forward_vector, v2)
-                if _angular <= math.radians(10):
-                    queue.append(_lanes_clone[_idx_lane])
-                    result.append(_lanes_clone[_idx_lane])
-                    _lanes_clone.pop(_idx_lane)
+                if _angular <= math.radians(10):  # diff in 10 degree
+                    queue.append(_lanes_clone[_i])
+
+                    res_ids.append(_ids_clone[_i])
+                    res_lanes.append(_lanes_clone[_i])
                     return
 
-                _lanes_clone.pop(_idx_lane)
+                _ids_clone.pop(_i)
+                _lanes_clone.pop(_i)
 
-            # _min_dist = 1e9
-            # _tmp_lane = None
-            # _tmp_i_lane = None
-            # for _i_lane, _lane in enumerate(lanes):
-            #     _distance = __dist(curr_lane[-1], _lane[0])
-            #     v1 = (-1, 0)
-            #     v2 = _lane[1] - _lane[0]
-            #     if (
-            #             _distance < _min_dist) and (
-            #             abs(heading - __angular(v1, v2)) <= math.radians(10)
-            #     ):
-            #         _min_dist = _distance
-            #         _tmp_lane = _lane
-            #         _tmp_i_lane = _i_lane
-            #
-            # queue.append(_tmp_lane)
-            # result.append(_tmp_lane)
-            # lanes.pop(_tmp_i_lane)
             return False
 
         def __adding():
-            for _i_lane, _lane in enumerate(lanes):
+            """
+            Chaining phase (get next lane)
+            Get the lane in range and fit the angular with previous lane
+            Returns:
+
+            """
+            for _i, (_id, _lane) in enumerate(zip(ids, lanes)):
                 _distance = __dist(curr_lane[-1], _lane[0])
                 # get lane in range
                 if _distance >= 10:
@@ -183,10 +185,15 @@ class MapHelper:
                 v2 = _lane[1] - _lane[0]
                 if __angular(v1, v2) <= math.radians(10):
                     queue.append(_lane)
-                    result.append(_lane)
-                    lanes.pop(_i_lane)
 
-        result = list()
+                    res_ids.append(_id)
+                    res_lanes.append(_lane)
+
+                    ids.pop(_i)
+                    lanes.pop(_i)
+
+        res_ids = list()
+        res_lanes = list()
         queue = [np.array([[agent_x, agent_y]])]
         _init = True
 
@@ -195,19 +202,14 @@ class MapHelper:
             # set the last point of polyline as new curr_pos
             curr_lane = queue.pop(0)
 
-            # get the nearest lane to curr_pos
-            # and add to queue
+            # if first run
             if _init:
                 _init = __initial_adding()
+            # get next lane
             else:
                 __adding()
 
-        # print("done:\n"
-        #       "before:", len(lanes),
-        #       "after:", len(result),
-        #       "\n\n\n"
-        #       )
-        return result
+        return res_ids, res_lanes
 
     def get_local_lanes(
             self,
@@ -236,7 +238,7 @@ class MapHelper:
         # get lane polyline
         lanes = self._get_lane_by_id(ids)
         # get lane on AGENT's direction only
-        lanes = self._get_lane_on_direction(lanes, agent_x, agent_y, heading)
+        ids, lanes = self._get_lane_on_direction(ids, lanes, agent_x, agent_y, heading)
 
         return ids, lanes
 
