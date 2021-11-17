@@ -51,8 +51,8 @@ def _get_local_map(
             - list of local lines which is non-variant to AGENT
                 each line has shape (10, 2) - 10 points, 2 dims x,y
     """
-    # local_map = list(np.ndarray) with np_shape: (10, 2)
-    _x_y = map_helper._map.loc[:, ["x", "y"]].to_numpy()
+    # # local_map = list(np.ndarray) with np_shape: (10, 2)
+    # _x_y = map_helper._map.loc[:, ["x", "y"]].to_numpy()
     # plt.scatter(_x_y[:, 0], _x_y[:, 1], marker='o', c='k', s=10)
     local_id, local_map = map_helper.get_local_lanes(center_x, center_y, heading)
 
