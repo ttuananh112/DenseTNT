@@ -130,7 +130,8 @@ class MapHelper:
             _norm_v2 = math.sqrt(_x2 ** 2 + _y2 ** 2)
             _a = _x1 * _x2 + _y1 * _y2
             _b = _norm_v1 * _norm_v2
-            return math.acos(_a / _b)
+            ratio = round(_a / _b, 5)
+            return math.acos(ratio)
 
         def __initial_adding():
             """
