@@ -155,7 +155,7 @@ class MapHelper:
 
                 # check is legal lane?
                 _lane = _lanes_clone[_i]
-                v2 = _lane[1] - _lane[0]
+                v2 = _lane[2] - _lane[0]
                 _angular = __angular(forward_vector, v2)
                 if _angular <= math.radians(10):  # diff in 10 degree
                     queue.append(_lanes_clone[_i])
@@ -181,8 +181,8 @@ class MapHelper:
                 # get lane in range
                 if _distance >= 10:
                     continue
-                v1 = curr_lane[-1] - curr_lane[-2]
-                v2 = _lane[1] - _lane[0]
+                v1 = curr_lane[-1] - curr_lane[-3]
+                v2 = _lane[2] - _lane[0]
                 if __angular(v1, v2) <= math.radians(10):
                     queue.append(_lane)
 

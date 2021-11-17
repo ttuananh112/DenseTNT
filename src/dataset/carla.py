@@ -65,6 +65,9 @@ def get_sub_map(args: utils.Args,
         lane_ids, polygons = carla_helper.get_local_lanes(
             agent_x=x, agent_y=y, heading=angle
         )
+        # break if can not find local lane?
+        if len(polygons) == 0:
+            return None, None
 
         # rotate map to fit the agent's orientation
         for index_polygon, polygon in enumerate(polygons):
@@ -280,6 +283,9 @@ def preprocess(args, id2info, mapping):
             polyline_spans=polyline_spans,
             mapping=mapping
         )
+        # break if something wrong
+        if vectors is None:
+            return None
 
     # logging('len(vectors)', t, len(vectors), prob=0.01)
 
@@ -460,7 +466,11 @@ class Dataset(torch.utils.data.Dataset):
                 #     ]
                 for file in self._files:
                     print(file)
-                    self.ex_list.append(self._compress_file(file))
+                    compressed = self._compress_file(file)
+                    if compressed is not None:
+                        self.ex_list.append(compressed)
+                    else:
+                        print("skip")
 
             else:
                 assert False, "num_cores must > 0"

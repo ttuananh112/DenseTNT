@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # print(probs.shape)
 
     map_path = "/home/anhtt163/dataset/OBP/data/inp/static.csv"
-    data_path = "/home/anhtt163/dataset/OBP/data/inp/inp02.csv"
+    data_path = "/home/anhtt163/dataset/OBP/data/inp/inp01.csv"
     obp = ObjectBehaviorPrediction(model_path, map_path)
     preds = obp.predict(pd.read_csv(data_path))
 
