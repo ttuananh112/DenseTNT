@@ -1,6 +1,10 @@
 import json
 import math
 import pandas as pd
+import numpy as np
+from typing import List, Tuple
+from utils import rotate
+from copy import deepcopy
 
 
 class MapHelper:
@@ -22,18 +26,18 @@ class MapHelper:
     ):
         df = pd.read_csv(map_path)
         self._map = df
-        # get lane only
-        self._map = self._map.loc[
-            (self._map["type"] == "l_lane") |
-            (self._map["type"] == "r_lane")
-            ]
+        # # get lane only
+        # self._map = self._map.loc[
+        #     (self._map["type"] == "l_lane") |
+        #     (self._map["type"] == "r_lane")
+        #     ]
 
     def _get_center_lane_polyline(self):
         # deep copy all components in map
         self._center_polyline = self._map.copy(deep=True)
 
         # group by id and type, and get mean position
-        self._center_polyline = self._map.groupby(
+        self._center_polyline = self._center_polyline.groupby(
             by=self._columns[:2], as_index=False
         ).mean()
 
@@ -53,7 +57,16 @@ class MapHelper:
             self,
             agent_x: float,
             agent_y: float,
-    ):
+    ) -> List:
+        """
+        Get id of lane in range distance
+        Args:
+            agent_x (float): x-coordinate of AGENT
+            agent_y (float): y-coordinate of AGENT
+
+        Returns:
+            (List[int]): list of AGENT's index
+        """
         tmp_center_polyline = self._center_polyline.copy(deep=True)
         tmp_center_polyline = tmp_center_polyline.apply(
             self.__estimate_distance,
@@ -83,18 +96,158 @@ class MapHelper:
             lanes.append(data)
         return lanes
 
+    @staticmethod
+    def _get_lane_on_direction(
+            lanes: List[np.ndarray],
+            agent_x: float,
+            agent_y: float,
+            heading: float
+    ) -> List[np.ndarray]:
+        """
+        Get lane on the same direction with AGENT
+        Args:
+            lanes (List[np.ndarray]): list of lanes
+            agent_x (float): x-coordinate of AGENT
+            agent_y (float): y-coordinate of AGENT
+            heading (float): yaw of AGENT
+
+        Returns:
+            (List[np.ndarray]): lanes on AGENT's direction
+        """
+
+        def __dist(p1, p2):
+            _x1, _y1 = p1
+            _x2, _y2 = p2
+            return math.sqrt((_x1 - _x2) ** 2 + (_y1 - _y2) ** 2)
+
+        def __angular(v1, v2):
+            _x1, _y1 = v1
+            _x2, _y2 = v2
+            _norm_v1 = math.sqrt(_x1 ** 2 + _y1 ** 2)
+            _norm_v2 = math.sqrt(_x2 ** 2 + _y2 ** 2)
+            _a = _x1 * _x2 + _y1 * _y2
+            _b = _norm_v1 * _norm_v2
+            return math.acos(_a / _b)
+
+        def __initial_adding():
+            _lanes_clone = deepcopy(lanes)
+            unit_vector = (1, 0)
+            forward_vector = rotate(unit_vector[0], unit_vector[1], heading)
+
+            while len(_lanes_clone) > 0:
+                _np_points = np.array(_lanes_clone).reshape((-1, 2))
+                _dist_to_agent = (curr_lane[-1] - _np_points) ** 2
+                _dist_to_agent = np.sqrt(_dist_to_agent[:, 0] + _dist_to_agent[:, 1])
+                _idx_point = np.argmin(_dist_to_agent)
+                _idx_lane = _idx_point // 10  # 10 point per lane
+
+                # check is legal lane?
+                _lane = _lanes_clone[_idx_lane]
+                v2 = _lane[1] - _lane[0]
+                _angular = __angular(forward_vector, v2)
+                if _angular <= math.radians(10):
+                    queue.append(_lanes_clone[_idx_lane])
+                    result.append(_lanes_clone[_idx_lane])
+                    _lanes_clone.pop(_idx_lane)
+                    return
+
+                _lanes_clone.pop(_idx_lane)
+
+            # _min_dist = 1e9
+            # _tmp_lane = None
+            # _tmp_i_lane = None
+            # for _i_lane, _lane in enumerate(lanes):
+            #     _distance = __dist(curr_lane[-1], _lane[0])
+            #     v1 = (-1, 0)
+            #     v2 = _lane[1] - _lane[0]
+            #     if (
+            #             _distance < _min_dist) and (
+            #             abs(heading - __angular(v1, v2)) <= math.radians(10)
+            #     ):
+            #         _min_dist = _distance
+            #         _tmp_lane = _lane
+            #         _tmp_i_lane = _i_lane
+            #
+            # queue.append(_tmp_lane)
+            # result.append(_tmp_lane)
+            # lanes.pop(_tmp_i_lane)
+            return False
+
+        def __adding():
+            for _i_lane, _lane in enumerate(lanes):
+                _distance = __dist(curr_lane[-1], _lane[0])
+                # get lane in range
+                if _distance >= 10:
+                    continue
+                v1 = curr_lane[-1] - curr_lane[-2]
+                v2 = _lane[1] - _lane[0]
+                if __angular(v1, v2) <= math.radians(10):
+                    queue.append(_lane)
+                    result.append(_lane)
+                    lanes.pop(_i_lane)
+
+        result = list()
+        queue = [np.array([[agent_x, agent_y]])]
+        _init = True
+
+        while len(queue) > 0:
+            # trace queue
+            # set the last point of polyline as new curr_pos
+            curr_lane = queue.pop(0)
+
+            # get the nearest lane to curr_pos
+            # and add to queue
+            if _init:
+                _init = __initial_adding()
+            else:
+                __adding()
+
+        # print("done:\n"
+        #       "before:", len(lanes),
+        #       "after:", len(result),
+        #       "\n\n\n"
+        #       )
+        return result
+
     def get_local_lanes(
             self,
             agent_x: float,
             agent_y: float,
-    ):
+            heading: float
+    ) -> Tuple[List, List[np.ndarray]]:
+        """
+        Get local lane on the way of AGENT, the lane must be:
+            - in range distance
+            - have the same direction of AGENT
+            - not backward (behind) AGENT
+        Args:
+            agent_x (float): x-coordinate of AGENT
+            agent_y (float): y-coordinate of AGENT
+            heading (float): yaw of AGENT
+            (all values are in world coordinates)
+
+        Returns:
+            (List, List[np.ndarray]):
+                - index of lanes
+                - list of lanes
+        """
         # get all lane_id in range distance
         ids = self._get_id_lane_in_range(agent_x, agent_y)
         # get lane polyline
         lanes = self._get_lane_by_id(ids)
+        # get lane on AGENT's direction only
+        lanes = self._get_lane_on_direction(lanes, agent_x, agent_y, heading)
 
         return ids, lanes
 
     def get_status(self, lane_id):
-        status = self._map.loc[lane_id, "status"]
+        """
+        Get status of corresponding lane_id
+        Args:
+            lane_id (int): index of lane
+
+        Returns:
+            (Dict): status of lane
+        """
+        status = self._map.loc[self._map["id"] == lane_id, "status"].iloc[0]
         return json.loads(status)

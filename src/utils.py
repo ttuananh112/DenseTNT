@@ -1337,7 +1337,7 @@ def run_process_todo(queue, queue_res, speed=None, eval_time=None):
 
 def run_process(queue, queue_res, args):
     id = np.random.randint(5)
-    utils_cython.args = args
+    utils_cython._args = args
     objective = 'MR'
     if 'MRminFDE' in args.other_params:
         objective = 'MRminFDE'

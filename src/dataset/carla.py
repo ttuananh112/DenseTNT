@@ -56,7 +56,7 @@ def get_sub_map(args: utils.Args,
     if args.not_use_api:
         pass
     else:
-        # get lane polyline in radius <= max_distance (=50.0)
+        # get center_lane (waypoint) polyline in radius <= max_distance (=50.0)
         # with origin is AGENT's position after 2s
         # list lane_line in polygon (x, y)
         lane_ids, polygons = carla_helper.get_local_lanes(
