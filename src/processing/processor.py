@@ -1,7 +1,5 @@
 import argparse
 
-import numpy as np
-
 import utils
 import torch
 import logging

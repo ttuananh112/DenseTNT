@@ -152,18 +152,32 @@ class MapHelper:
                 _dist_to_agent = (curr_lane[-1] - _np_points) ** 2
                 _dist_to_agent = np.sqrt(_dist_to_agent[:, 0] + _dist_to_agent[:, 1])
                 _idx_point = np.argmin(_dist_to_agent)
+                # get index of lane that containing nearest point
                 _i = _idx_point // 10  # 10 point per lane
 
                 # check is legal lane?
                 _lane = _lanes_clone[_i]
                 v2 = _lane[2] - _lane[0]
                 _angular = __angular(forward_vector, v2)
-                if _angular <= math.radians(10):  # diff in 10 degree
-                    queue.append(_lanes_clone[_i])
+                # if diff in 10 degree
+                if _angular <= math.radians(10):
+                    # create new lane
+                    # by interpolating from agent position
+                    # to tail point of the nearest lane
+                    _head_point = np.array([agent_x, agent_y])
+                    _tail_point = _lane[-1]
 
-                    res_ids.append(_ids_clone[_i])
-                    res_lanes.append(_lanes_clone[_i])
-                    return
+                    # skip if distance of a lane
+                    # is too short (2m)
+                    if np.linalg.norm(_tail_point - _head_point) >= 2:
+                        _x = np.linspace(_head_point[0], _tail_point[0], 10)
+                        _y = np.linspace(_head_point[1], _tail_point[1], 10)
+                        _interp_lane = np.stack([_x, _y], axis=1)
+
+                        queue.append(_interp_lane)
+                        res_ids.append(_ids_clone[_i])
+                        res_lanes.append(_interp_lane)
+                        return
 
                 _ids_clone.pop(_i)
                 _lanes_clone.pop(_i)
