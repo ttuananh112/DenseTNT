@@ -335,8 +335,8 @@ def postprocess(
     )
 
     def __de_rotate(x, y, angle):
-        _x = x * math.cos(-angle) + y * math.sin(-angle)
-        _y = -x * math.sin(-angle) + y * math.cos(-angle)
+        _x = x * math.cos(angle) + y * math.sin(angle)
+        _y = -x * math.sin(angle) + y * math.cos(angle)
         return _x, _y
 
     def __denormalize(row):
