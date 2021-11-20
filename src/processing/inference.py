@@ -17,7 +17,7 @@ class ObjectBehaviorPrediction:
             model_path,
             map_path,
             device: str = "cuda:0",
-            max_workers: int = 1  # TODO: 5
+            max_workers: int = 1
     ):
         self._device = device
         self._setup_logging()

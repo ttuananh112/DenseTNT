@@ -2,7 +2,7 @@ import pandas as pd
 import logging
 import matplotlib.pyplot as plt
 import matplotlib
-from processing.processor import ObjectBehaviorPrediction
+from processing.inference import ObjectBehaviorPrediction
 
 matplotlib.use('tkagg')
 # logger
@@ -20,7 +20,7 @@ data_path = "/home/anhtt163/dataset/OBP/data/inp/inp02.csv"
 
 
 if __name__ == "__main__":
-    obp = ObjectBehaviorPrediction(model_path, map_path)
+    obp = ObjectBehaviorPrediction(model_path, map_path, max_workers=5)
     preds = obp.predict(pd.read_csv(data_path))
 
     # visualize
@@ -36,4 +36,5 @@ if __name__ == "__main__":
         # _pred_traj = trajs[_max_prob_idx]
         _pred_traj = trajs.reshape(-1, 2)
         plt.scatter(_pred_traj[:, 0], _pred_traj[:, 1], c='r', marker='o', s=1.)
+    plt.axis("equal")
     plt.show()

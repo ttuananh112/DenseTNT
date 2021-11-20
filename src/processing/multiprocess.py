@@ -51,23 +51,23 @@ def _get_local_map(
             - list of local lines which is non-variant to AGENT
                 each line has shape (10, 2) - 10 points, 2 dims x,y
     """
-    # local_map = list(np.ndarray) with np_shape: (10, 2)
-    _x_y = map_helper._map.loc[:, ["x", "y"]].to_numpy()
-    plt.scatter(_x_y[:, 0], _x_y[:, 1], marker='o', c='k', s=10)
+    # # local_map = list(np.ndarray) with np_shape: (10, 2)
+    # _x_y = map_helper._map.loc[:, ["x", "y"]].to_numpy()
+    # plt.scatter(_x_y[:, 0], _x_y[:, 1], marker='o', c='k', s=10)
     local_id, local_map = map_helper.get_local_lanes(center_x, center_y, heading)
 
     for line in local_map:
-        plt.scatter(line[:, 0], line[:, 1], marker='o', s=10)
+        # plt.scatter(line[:, 0], line[:, 1], marker='o', s=10)
         for i, point in enumerate(line):
-            plt.text(point[0], point[1], i)
+            # plt.text(point[0], point[1], i)
             # rotate and translate line for non-variant to AGENT
             point[0], point[1] = rotate(
                 point[0] - center_x,
                 point[1] - center_y,
                 heading
             )
-    plt.scatter(center_x, center_y, marker='v', s=100)
-    plt.show()
+    # plt.scatter(center_x, center_y, marker='v', s=100)
+    # plt.show()
     return local_id, local_map
 
 
@@ -347,5 +347,6 @@ def postprocess(
 
     df_pred_traj = pd.DataFrame(pred_traj, columns=["center_x", "center_y"])
     df_pred_traj.apply(__denormalize, axis=1)
+
 
     return df_pred_traj.to_numpy().reshape(shape)
