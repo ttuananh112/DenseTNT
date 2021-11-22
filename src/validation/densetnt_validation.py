@@ -18,7 +18,7 @@ class DenseTNTValidation(Validation, ABC):
             model_path, self._map_path, max_workers=max_workers
         )
 
-    def predict(self, dynamic_path):
+    def _separate_input(self, dynamic_path, num_timesteps=20):
         data = pd.read_csv(dynamic_path)
         data_by_timestamp = data.groupby(by=[self.ts_col])
         # data container
@@ -27,11 +27,16 @@ class DenseTNTValidation(Validation, ABC):
 
         for _id, (_ts, _frame) in enumerate(data_by_timestamp):
             # get 20-first-timestamps for input (2s)
-            if _id < 20:
+            if _id < num_timesteps:
                 inp_df = pd.concat([inp_df, _frame], axis=0)
             # the rest is for future prediction (3s)
             else:
                 gt_df = pd.concat([gt_df, _frame], axis=0)
+
+        return inp_df, gt_df
+
+    def predict(self, dynamic_path):
+        inp_df, gt_df = self._separate_input(dynamic_path)
 
         # get prediction from model
         out = self.algorithm.predict(inp_df)

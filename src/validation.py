@@ -1,21 +1,54 @@
 import glob
+import json
+import carla
+
 from validation.densetnt_validation import DenseTNTValidation
+from validation.purepursuit_validation import PurePursuitValidation
+
+
+def get_config(config_path: str):
+    with open(config_path, "r") as f:
+        data_config = json.load(f)
+    return data_config
+
+
+def get_topology(host, port, town):
+    client = carla.Client(host=host, port=port)
+    world = client.load_world(town)
+    map = world.get_map()
+    topology = map.get_topology()
+    return topology
+
 
 if __name__ == "__main__":
     max_workers = 5
     model_path = "models/v4_3/model.30.bin"
     data_folder = "/home/anhtt163/dataset/OBP/data_test"
+    result = dict()
+
     # iter through all batch test in folder
     for batch in glob.glob(f"{data_folder}/*"):
+        result[batch] = dict()
         map_path = f"{batch}/static.csv"
-        denseTNT_validation = DenseTNTValidation(
+        dynamic_folder = f"{batch}/dynamic_by_ts"
+
+        # configuration
+        config = get_config(f"{batch}/data_config.txt")
+        host = config["connection"]["host"]
+        port = config["connection"]["port"]
+        town = config["map"]["town"]
+
+        # calculate score for DenseTNT
+        mfde, mr = DenseTNTValidation(
             map_path=map_path, model_path=model_path,
             max_workers=max_workers
-        )
+        ).run(dynamic_folder)
+        result[batch]["DenseTNT"] = {"mfde": mfde, "mr": mr}
 
-        dynamic_folder = f"{batch}/dynamic_by_ts"
-        mfde, mr = denseTNT_validation.run(dynamic_folder)
+        # calculate score for Pure-Pursuit
+        mfde, mr = PurePursuitValidation(
+            topology=get_topology(host, port, town)
+        ).run(dynamic_folder)
+        result[batch]["PurePursuit"] = {"mfde": mfde, "mr": mr}
 
-        print(f"Score for {batch}")
-        print("Mean FDE:", mfde)
-        print("Miss rate:", mr)
+    print(json.dumps(result, sort_keys=True, indent=4))
