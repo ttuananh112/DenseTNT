@@ -3,6 +3,7 @@ import pickle
 import zlib
 
 import numpy as np
+import pandas as pd
 import torch
 import logging
 
@@ -468,7 +469,7 @@ class Dataset(torch.utils.data.Dataset):
                     print(file)
                     compressed = self._compress_file(file)
                     if compressed is not None:
-                        self.ex_list.append(compressed)
+                        self.ex_list.extend(compressed)
                     else:
                         print("skip")
 
@@ -493,17 +494,35 @@ class Dataset(torch.utils.data.Dataset):
         if not file.endswith("csv"):
             return data_compress
 
-        with open(file, "r", encoding='utf-8') as fin:
-            lines = fin.readlines()[1:]
-        # get carla data
-        instance = carla_get_instance(
-            lines, file, self.args
-        )
+        # with open(file, "r", encoding='utf-8') as fin:
+        #     lines = fin.readlines()[1:]  # skip header row
 
-        if instance is not None:
-            data_compress = zlib.compress(
-                pickle.dumps(instance))
-        return data_compress
+        data = pd.read_csv(file)
+        list_id = data["id"].unique()
+        result = list()
+        for _id in list_id:
+            data_clone = data.copy(deep=True)
+
+            # set AGENT role for each object respectively
+            data_clone.loc[data_clone["object_type"] == "AGENT", "object_type"] = "OTHERS"
+            data_clone.loc[data_clone["id"] == _id, "object_type"] = "AGENT"
+
+            # convert dataframe to string
+            # values in 1 row are separated by commas
+            lines = data_clone.to_string(header=False, index=False).split("\n")
+            lines = [','.join(ele.split()) for ele in lines]
+
+            # get carla data
+            instance = carla_get_instance(
+                lines, file, self.args
+            )
+
+            if instance is not None:
+                data_compress = zlib.compress(
+                    pickle.dumps(instance))
+                result.append(data_compress)
+
+        return result
 
     def __len__(self):
         return len(self.ex_list)
