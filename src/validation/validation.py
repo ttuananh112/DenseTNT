@@ -157,6 +157,8 @@ class Validation:
                 idx_cases = (np.where(fde > 2)[0]
                              if debug == "bad"
                              else np.where(fde <= 2)[0])
+                if len(idx_cases) == 0:
+                    continue
                 _inp = inp[idx_cases].reshape((-1, 2))
                 _pred = pred[idx_cases].reshape((-1, 2))
                 _gt = gt[idx_cases].reshape((-1, 2))

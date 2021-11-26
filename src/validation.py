@@ -21,8 +21,8 @@ def get_topology(host, port, town):
 
 if __name__ == "__main__":
     max_workers = 5
-    model_path = "models/v7/model.30.bin"
-    data_folder = "/home/anhtt163/dataset/OBP/datav7"
+    model_path = "models/v4_3/model.30.bin"
+    data_folder = "/home/anhtt163/dataset/OBP/data_test"
     batch = f"{data_folder}/all_batches"
 
     result = dict()
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     mfde, mr = DenseTNTValidation(
         map_path=map_path, model_path=model_path,
         max_workers=max_workers
-    ).run(dynamic_folder, debug="bad")
+    ).run(dynamic_folder, debug="good")
     result[batch]["DenseTNT"] = {"mfde": mfde, "mr": mr}
 
     # # calculate score for Pure-Pursuit
