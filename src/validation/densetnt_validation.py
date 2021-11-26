@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+from typing import Tuple
 
 from abc import ABC
 from validation.validation import Validation
@@ -18,31 +18,35 @@ class DenseTNTValidation(Validation, ABC):
             model_path, self._map_path, max_workers=max_workers
         )
 
-    def _separate_input(self, dynamic_path, num_timesteps=20):
-        data = pd.read_csv(dynamic_path)
-        data_by_timestamp = data.groupby(by=[self.ts_col])
-        # data container
-        inp_df = pd.DataFrame(columns=data.columns)
-        gt_df = pd.DataFrame(columns=data.columns)
+    def predict(
+            self,
+            dynamic_path: str
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Get prediction from DenseTNT model
+        and ground-truth from corresponding sub-scene
+        Args:
+            dynamic_path (str): path to dynamic event sub-scene
 
-        for _id, (_ts, _frame) in enumerate(data_by_timestamp):
-            # get 20-first-timestamps for input (2s)
-            if _id < num_timesteps:
-                inp_df = pd.concat([inp_df, _frame], axis=0)
-            # the rest is for future prediction (3s)
-            else:
-                gt_df = pd.concat([gt_df, _frame], axis=0)
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                - inp with shape (N, T', 2)
+                - pred with shape (N, K, T, 2)
+                - gt with shape (N, T, 2)
+        """
+        inp_df, gt_df = self.separate_input(dynamic_path)
 
-        return inp_df, gt_df
-
-    def predict(self, dynamic_path):
-        inp_df, gt_df = self._separate_input(dynamic_path)
+        # process inp to numpy with shape (N, T', 2)
+        inp = list()
+        for _id, _frame in inp_df.groupby(by=["id"]):
+            inp.append(_frame[["center_x", "center_y"]].to_numpy())
+        inp = np.array(inp)
 
         # get prediction from model
         out = self.algorithm.predict(inp_df)
         # return zeros if can not produce input
         if not out:
-            return np.zeros((1, 1, 30, 2)), np.zeros((1, 30, 2))
+            return np.zeros((1, 20, 2)), np.zeros((1, 1, 30, 2)), np.zeros((1, 30, 2))
 
         pred = [traj for traj, _ in out.values()]
         pred = np.array(pred)  # pred should have shape (N, K, T, 2)
@@ -55,4 +59,4 @@ class DenseTNTValidation(Validation, ABC):
                 continue
             gt.append(_frame[[self.x_col, self.y_col]].to_numpy())
         gt = np.array(gt)
-        return pred, gt
+        return inp, pred, gt

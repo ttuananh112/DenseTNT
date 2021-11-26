@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from typing import Dict, List, Tuple
 from dataset.carla_helper import MapHelper
-from utils import rotate
+from utils import rotate, get_subdivide_points
 
 
 def _get_agent_center_coordinates(
@@ -200,6 +200,27 @@ def _get_map_matrix(
     return vectors, map_spans
 
 
+def _get_goals_2d(polygons):
+    def __get_hash(_point):
+        return round((_point[0] + 500) * 100) * 1000000 + \
+               round((_point[1] + 500) * 100)
+
+    visit = dict()
+    points = list()
+
+    for index_polygon, polygon in enumerate(polygons):
+        for i, point in enumerate(polygon):
+            hash = __get_hash(point)
+            if hash not in visit:
+                visit[hash] = True
+                points.append(point)
+
+        subdivide_points = get_subdivide_points(polygon)
+        points.extend(subdivide_points)
+
+    return np.array(points)
+
+
 def _get_data(
         mapping: Dict,
         df_dynamics: pd.DataFrame,
@@ -262,7 +283,7 @@ def _get_data(
     # goals_2D
     np_local_map = np.array(list_local_map)
     mapping["polygons"] = np_local_map  # 10 points each polygon
-    mapping["goals_2D"] = np_local_map.reshape(-1, 2)
+    mapping["goals_2D"] = _get_goals_2d(np_local_map)  # np_local_map.reshape(-1, 2)
 
 
 def _get_dummy_label(mapping: Dict):

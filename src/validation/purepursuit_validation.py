@@ -26,39 +26,6 @@ class PurePursuitValidation(Validation, ABC):
             steer_scale=2.0
         )
 
-    def _separate_input(
-            self,
-            dynamic_path: str,
-            num_inp_timesteps: int = 20
-    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        """
-        Get input data and ground-truth data
-        Those data is separated based on num_inp_timesteps
-        Args:
-            dynamic_path (str): path to dynamic event
-            num_inp_timesteps (int): number of time-steps as input
-
-        Returns:
-            Tuple[pd.DataFrame, pd.DataFrame]
-                - input data frame
-                - ground-truth data frame
-        """
-        data = pd.read_csv(dynamic_path)
-        data_by_timestamp = data.groupby(by=[self.ts_col])
-        # data container
-        inp_df = pd.DataFrame(columns=data.columns)
-        gt_df = pd.DataFrame(columns=data.columns)
-
-        for _id, (_ts, _frame) in enumerate(data_by_timestamp):
-            # get 20-first-timestamps for input (2s)
-            if _id < num_inp_timesteps:
-                inp_df = pd.concat([inp_df, _frame], axis=0)
-            # the rest is for future prediction (3s)
-            else:
-                gt_df = pd.concat([gt_df, _frame], axis=0)
-
-        return inp_df, gt_df
-
     @staticmethod
     def _get_value(
             last_state: pd.DataFrame
@@ -125,11 +92,18 @@ class PurePursuitValidation(Validation, ABC):
             dynamic_path (str): path to dynamic event sub-scene
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]:
+            Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                - inp with shape (N, T', 2)
                 - pred with shape (N, K, T, 2)
                 - gt with shape (N, T, 2)
         """
-        inp_df, gt_df = self._separate_input(dynamic_path)
+        inp_df, gt_df = self.separate_input(dynamic_path)
+
+        # process inp to numpy with shape (N, T', 2)
+        inp = list()
+        for _id, _frame in inp_df.groupby(by=["id"]):
+            inp.append(_frame[["center_x", "center_y"]].to_numpy())
+        inp = np.array(inp)
 
         # get prediction from pure-pursuit
         inp_by_id = inp_df.groupby(by=["id"])
@@ -155,4 +129,4 @@ class PurePursuitValidation(Validation, ABC):
                 continue
             gt.append(_frame[[self.x_col, self.y_col]].to_numpy())
         gt = np.array(gt)
-        return pred, gt
+        return inp, pred, gt
