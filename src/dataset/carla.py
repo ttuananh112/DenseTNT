@@ -502,10 +502,15 @@ class Dataset(torch.utils.data.Dataset):
         result = list()
         for _id in list_id:
             data_clone = data.copy(deep=True)
-
+            # reset object_type = OTHERS
+            data_clone["object_type"] = "OTHERS"
             # set AGENT role for each object respectively
-            data_clone.loc[data_clone["object_type"] == "AGENT", "object_type"] = "OTHERS"
             data_clone.loc[data_clone["id"] == _id, "object_type"] = "AGENT"
+            # set AV randomly
+            _av_id = _id
+            while _av_id == _id:
+                _av_id = np.random.choice(list_id)
+            data_clone.loc[data_clone["id"] == _av_id, "object_type"] = "AGENT"
 
             # convert dataframe to string
             # values in 1 row are separated by commas

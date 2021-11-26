@@ -40,7 +40,7 @@ if __name__ == "__main__":
     mfde, mr = DenseTNTValidation(
         map_path=map_path, model_path=model_path,
         max_workers=max_workers
-    ).run(dynamic_folder, debug="good")
+    ).run(dynamic_folder, debug="bad")
     result[batch]["DenseTNT"] = {"mfde": mfde, "mr": mr}
 
     # # calculate score for Pure-Pursuit
