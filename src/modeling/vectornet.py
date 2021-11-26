@@ -164,7 +164,7 @@ class VectorNet(nn.Module):
                                                                 sub_batch_size=16, device=device)
 
         if 'laneGCN' in args.other_params:
-            inputs_before_laneGCN, inputs_lengths_before_laneGCN = utils.merge_tensors(element_states_batch, device=device)
+            # inputs_before_laneGCN, inputs_lengths_before_laneGCN = utils.merge_tensors(element_states_batch, device=device)
             for i in range(batch_size):
                 map_start_polyline_idx = mapping[i]['map_start_polyline_idx']
                 agents = element_states_batch[i][:map_start_polyline_idx]

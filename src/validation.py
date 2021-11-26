@@ -1,3 +1,6 @@
+import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+
 import glob
 import json
 import carla
@@ -22,33 +25,32 @@ def get_topology(host, port, town):
 
 if __name__ == "__main__":
     max_workers = 5
-    model_path = "models/v4_3/model.30.bin"
+    model_path = "models/v7_bs64/model.30.bin"
     data_folder = "/home/anhtt163/dataset/OBP/data_test"
+    batch = f"{data_folder}/all_batches"
+
     result = dict()
+    result[batch] = dict()
+    map_path = f"{batch}/static.csv"
+    dynamic_folder = f"{batch}/dynamic_by_ts"
 
-    # iter through all batch test in folder
-    for batch in glob.glob(f"{data_folder}/*"):
-        result[batch] = dict()
-        map_path = f"{batch}/static.csv"
-        dynamic_folder = f"{batch}/dynamic_by_ts"
+    # configuration
+    config = get_config(f"{batch}/data_config.txt")
+    host = config["connection"]["host"]
+    port = config["connection"]["port"]
+    town = config["map"]["town"]
 
-        # configuration
-        config = get_config(f"{batch}/data_config.txt")
-        host = config["connection"]["host"]
-        port = config["connection"]["port"]
-        town = config["map"]["town"]
+    # calculate score for DenseTNT
+    mfde, mr = DenseTNTValidation(
+        map_path=map_path, model_path=model_path,
+        max_workers=max_workers
+    ).run(dynamic_folder)
+    result[batch]["DenseTNT"] = {"mfde": mfde, "mr": mr}
 
-        # calculate score for DenseTNT
-        mfde, mr = DenseTNTValidation(
-            map_path=map_path, model_path=model_path,
-            max_workers=max_workers
-        ).run(dynamic_folder)
-        result[batch]["DenseTNT"] = {"mfde": mfde, "mr": mr}
-
-        # calculate score for Pure-Pursuit
-        mfde, mr = PurePursuitValidation(
-            topology=get_topology(host, port, town)
-        ).run(dynamic_folder)
-        result[batch]["PurePursuit"] = {"mfde": mfde, "mr": mr}
+    # calculate score for Pure-Pursuit
+    mfde, mr = PurePursuitValidation(
+        topology=get_topology(host, port, town)
+    ).run(dynamic_folder)
+    result[batch]["PurePursuit"] = {"mfde": mfde, "mr": mr}
 
     print(json.dumps(result, sort_keys=True, indent=4))

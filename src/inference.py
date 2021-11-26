@@ -13,9 +13,9 @@ logger = logging.getLogger(__name__)
 device = "cuda:0"
 
 # -----
-model_path = "models/v4_3/model.30.bin"
-map_path = "/home/anhtt163/dataset/OBP/data/inp/static.csv"
-data_path = "/home/anhtt163/dataset/OBP/data/inp/inp02.csv"
+model_path = "models/v6_1/model.30.bin"
+map_path = "/home/anhtt163/dataset/OBP/datav4/inp/static.csv"
+data_path = "/home/anhtt163/dataset/OBP/datav4/inp/inp01.csv"
 # -----
 
 

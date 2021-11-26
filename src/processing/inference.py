@@ -79,6 +79,7 @@ class ObjectBehaviorPrediction:
         list_ids = df_dynamics["id"].unique()
         batch_mapping = list()
         futures = dict()
+        result = dict()
 
         # pre-process data
         # compute multi-process...
@@ -93,9 +94,23 @@ class ObjectBehaviorPrediction:
                     df_dynamics=df_dynamics, map_helper=self._map_helper, obj_id=_id
                 )
 
+        ids_to_remove = []
         # get result from processors
-        for _, future in futures.items():
-            batch_mapping.append(future.result())
+        for _id, future in futures.items():
+            res = future.result()
+            if res is not None:
+                batch_mapping.append(res)
+            else:
+                # reserve to remove later
+                ids_to_remove.append(_id)
+
+        # remove object from result
+        for _id in ids_to_remove:
+            del futures[_id]
+
+        # return if len(batch) == 0
+        if len(batch_mapping) == 0:
+            return result
 
         # predict in batch
         trajs, probs, _ = self._model(batch_mapping, self._device)
@@ -108,7 +123,7 @@ class ObjectBehaviorPrediction:
         # post-process
         # compute multi-process
         with ProcessPoolExecutor(max_workers=self._max_workers) as executor:
-            for _id in list_ids:
+            for _id in futures.keys():
                 # skip AV data
                 if df_dynamics.loc[df_dynamics["id"] == _id, "object_type"].iloc[0] == "AV":
                     continue

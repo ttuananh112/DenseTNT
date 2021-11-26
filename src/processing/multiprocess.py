@@ -157,7 +157,7 @@ def _get_map_matrix(
             - map matrix
             - map spans
     """
-    vectors = list()
+    vectors = np.empty((0, 128))
     map_spans = list()
     for i_polygon, (l_idx, points) in enumerate(zip(local_index, list_local_map)):
         _start = len(vectors)
@@ -188,7 +188,7 @@ def _get_map_matrix(
                 vector[-17] = point_pre_pre[0]
                 vector[-18] = point_pre_pre[1]
                 # add to vector container
-                vectors.append(vector)
+                vectors = np.concatenate([vectors, vector.reshape(1, -1)])
 
             # reserve pre-point
             _x_pre, _y_pre = point
@@ -197,7 +197,7 @@ def _get_map_matrix(
         # mark down start and end index of polyline
         map_spans.append((_start, _end))
 
-    return np.array(vectors), map_spans
+    return vectors, map_spans
 
 
 def _get_data(
@@ -233,6 +233,9 @@ def _get_data(
         center_x, center_y,
         heading
     )
+    # return None if can not find local map
+    if len(list_local_map) == 0:
+        raise ValueError
 
     # pre-process dynamics object
     dynamics_matrix, dynamics_spans = _get_dynamics_matrix(
@@ -274,7 +277,7 @@ def _get_dummy_label(mapping: Dict):
     """
     mapping["labels"] = np.zeros((30, 2))
     mapping["labels_is_valid"] = np.zeros((30,))
-    mapping["stage_one_label"] = 1
+    mapping["stage_one_label"] = 0
     mapping["file_name"] = "dummy_filename"
 
 
@@ -298,11 +301,16 @@ def preprocess(
     df_dynamics_clone = df_dynamics.copy(deep=True)
 
     # assign AGENT for obj_id
+    df_dynamics_clone.loc[df_dynamics_clone["object_type"] == "AGENT", "object_type"] = "OTHERS"
     df_dynamics_clone.loc[df_dynamics_clone["id"] == obj_id, "object_type"] = "AGENT"
 
     # get matrix, polyline_spans and map_start_polyline_idx
     # all value should be normalized by AGENT's position
-    _get_data(mapping, df_dynamics_clone, map_helper, obj_id)
+    try:
+        _get_data(mapping, df_dynamics_clone, map_helper, obj_id)
+    except ValueError:
+        # failed to get data
+        return None
 
     # generate dummy label
     # TODO: this should be redundant...
@@ -347,6 +355,5 @@ def postprocess(
 
     df_pred_traj = pd.DataFrame(pred_traj, columns=["center_x", "center_y"])
     df_pred_traj.apply(__denormalize, axis=1)
-
 
     return df_pred_traj.to_numpy().reshape(shape)

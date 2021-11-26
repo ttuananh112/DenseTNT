@@ -40,6 +40,10 @@ class DenseTNTValidation(Validation, ABC):
 
         # get prediction from model
         out = self.algorithm.predict(inp_df)
+        # return zeros if can not produce input
+        if not out:
+            return np.zeros((1, 1, 30, 2)), np.zeros((1, 30, 2))
+
         pred = [traj for traj, _ in out.values()]
         pred = np.array(pred)  # pred should have shape (N, K, T, 2)
 

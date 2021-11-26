@@ -86,7 +86,7 @@ class Validation:
         Returns:
             (float): MR score
         """
-        mr_score = float(np.sum(fdes <= self.mr_epsilon) / len(fdes))
+        mr_score = float(np.sum(fdes > self.mr_epsilon) / len(fdes))
         return mr_score
 
     def run(
