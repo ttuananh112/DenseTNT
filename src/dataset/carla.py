@@ -510,7 +510,7 @@ class Dataset(torch.utils.data.Dataset):
             _av_id = _id
             while _av_id == _id:
                 _av_id = np.random.choice(list_id)
-            data_clone.loc[data_clone["id"] == _av_id, "object_type"] = "AGENT"
+            data_clone.loc[data_clone["id"] == _av_id, "object_type"] = "AV"
 
             # convert dataframe to string
             # values in 1 row are separated by commas
