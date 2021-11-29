@@ -494,38 +494,19 @@ class Dataset(torch.utils.data.Dataset):
         if not file.endswith("csv"):
             return data_compress
 
-        # with open(file, "r", encoding='utf-8') as fin:
-        #     lines = fin.readlines()[1:]  # skip header row
+        with open(file, "r", encoding='utf-8') as fin:
+            lines = fin.readlines()[1:]  # skip header row
 
-        data = pd.read_csv(file)
-        list_id = data["id"].unique()
         result = list()
-        for _id in list_id:
-            data_clone = data.copy(deep=True)
-            # reset object_type = OTHERS
-            data_clone["object_type"] = "OTHERS"
-            # set AGENT role for each object respectively
-            data_clone.loc[data_clone["id"] == _id, "object_type"] = "AGENT"
-            # set AV randomly
-            _av_id = _id
-            while _av_id == _id:
-                _av_id = np.random.choice(list_id)
-            data_clone.loc[data_clone["id"] == _av_id, "object_type"] = "AV"
+        # get carla data
+        instance = carla_get_instance(
+            lines, file, self.args
+        )
 
-            # convert dataframe to string
-            # values in 1 row are separated by commas
-            lines = data_clone.to_string(header=False, index=False).split("\n")
-            lines = [','.join(ele.split()) for ele in lines]
-
-            # get carla data
-            instance = carla_get_instance(
-                lines, file, self.args
-            )
-
-            if instance is not None:
-                data_compress = zlib.compress(
-                    pickle.dumps(instance))
-                result.append(data_compress)
+        if instance is not None:
+            data_compress = zlib.compress(
+                pickle.dumps(instance))
+            result.append(data_compress)
 
         return result
 

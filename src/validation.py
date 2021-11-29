@@ -21,7 +21,7 @@ def get_topology(host, port, town):
 
 if __name__ == "__main__":
     max_workers = 5
-    model_path = "models/v4_3/model.30.bin"
+    model_path = "models/v8/model.30.bin"
     data_folder = "/home/anhtt163/dataset/OBP/data_test"
     batch = f"{data_folder}/all_batches"
 
