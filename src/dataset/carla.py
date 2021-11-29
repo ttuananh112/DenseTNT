@@ -469,7 +469,7 @@ class Dataset(torch.utils.data.Dataset):
                     print(file)
                     compressed = self._compress_file(file)
                     if compressed is not None:
-                        self.ex_list.extend(compressed)
+                        self.ex_list.append(compressed)
                     else:
                         print("skip")
 
@@ -497,7 +497,6 @@ class Dataset(torch.utils.data.Dataset):
         with open(file, "r", encoding='utf-8') as fin:
             lines = fin.readlines()[1:]  # skip header row
 
-        result = list()
         # get carla data
         instance = carla_get_instance(
             lines, file, self.args
@@ -506,9 +505,8 @@ class Dataset(torch.utils.data.Dataset):
         if instance is not None:
             data_compress = zlib.compress(
                 pickle.dumps(instance))
-            result.append(data_compress)
 
-        return result
+        return data_compress
 
     def __len__(self):
         return len(self.ex_list)
