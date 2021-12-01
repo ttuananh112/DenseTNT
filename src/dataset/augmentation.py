@@ -24,7 +24,9 @@ def flip_vertically(mapping: Dict):
     mapping["matrix"] = np.concatenate([actor_vectors, map_vectors], axis=0)
 
     # POLYGON
-    mapping["polygons"][:, 1] = -mapping["polygons"][:, 1]
+    polygons = np.array(mapping["polygons"])
+    polygons[:, 1] = -polygons[:, 1]
+    mapping["polygons"] = polygons.tolist()
 
     # GOALS_2D
     mapping["goals_2D"][:, 1] = -mapping["goals_2D"][:, 1]
