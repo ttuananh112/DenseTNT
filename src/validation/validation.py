@@ -2,6 +2,7 @@ import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 from typing import Tuple
 from abc import abstractmethod
@@ -145,6 +146,10 @@ class Validation:
                 + mFDE
                 + MR
         """
+        # pre-defined colors
+        colors = mcolors.TABLEAU_COLORS
+        names = list(colors)
+
         fde_container = list()
         for sub_scene_dynamics in glob.glob(f"{dynamic_folder}/*.csv"):
             inp, pred, gt = self.predict(sub_scene_dynamics)
@@ -159,14 +164,33 @@ class Validation:
                              else np.where(fde <= 2)[0])
                 if len(idx_cases) == 0:
                     continue
-                _inp = inp[idx_cases].reshape((-1, 2))
-                _pred = pred[idx_cases].reshape((-1, 2))
-                _gt = gt[idx_cases].reshape((-1, 2))
 
-                # visualize
-                plt.scatter(_inp[:, 0], _inp[:, 1], c="b", s=10, label="inp")
-                plt.scatter(_pred[:, 0], _pred[:, 1], c="r", s=10, label="pred")
-                plt.scatter(_gt[:, 0], _gt[:, 1], c="g", s=10, label="gt")
+                # visualize prediction
+                # each trajectory represented in different color
+                _pred = pred[idx_cases]
+                _num_trajs = _pred.shape[1]
+                for _i in range(_num_trajs):
+                    plt.scatter(
+                        _pred[:, _i, :, 0].flatten(),
+                        _pred[:, _i, :, 1].flatten(),
+                        c=colors[names[-_i]], s=10
+                    )
+
+                # process for input and ground-truth
+                _inp = inp[idx_cases].reshape((-1, 2))
+                _gt = gt[idx_cases].reshape((-1, 2))
+                # visualize input and ground-truth
+                plt.scatter(
+                    _inp[:, 0], _inp[:, 1],
+                    c='b',  # blue
+                    s=10, label="inp"
+                )
+                plt.scatter(
+                    _gt[:, 0], _gt[:, 1],
+                    c='r',  # red
+                    s=10, label="gt"
+                )
+                # adjust figure
                 plt.legend(loc="upper right")
                 plt.axis("equal")
                 plt.show()

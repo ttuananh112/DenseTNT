@@ -101,15 +101,17 @@ class PurePursuitValidation(Validation, ABC):
 
         # process inp to numpy with shape (N, T', 2)
         inp = list()
-        for _id, _frame in inp_df.groupby(by=["id"]):
-            inp.append(_frame[["center_x", "center_y"]].to_numpy())
+        for _id, _frame in inp_df.groupby(by=[self.id_col]):
+            if _frame.iloc[0][self.object_type_col] == "AV":
+                continue
+            inp.append(_frame[[self.x_col, self.y_col]].to_numpy())
         inp = np.array(inp)
 
         # get prediction from pure-pursuit
-        inp_by_id = inp_df.groupby(by=["id"])
+        inp_by_id = inp_df.groupby(by=[self.id_col])
         pred = list()
         for _id, _frame in inp_by_id:
-            if _frame["object_type"].iloc[0] == "AV":
+            if _frame[self.object_type_col].iloc[0] == "AV":
                 continue
             vehicle_state, vehicle_dynamic = self._get_value(_frame.iloc[-1])
             trajectories = self.algorithm.predict(

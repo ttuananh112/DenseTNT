@@ -38,8 +38,10 @@ class DenseTNTValidation(Validation, ABC):
 
         # process inp to numpy with shape (N, T', 2)
         inp = list()
-        for _id, _frame in inp_df.groupby(by=["id"]):
-            inp.append(_frame[["center_x", "center_y"]].to_numpy())
+        for _id, _frame in inp_df.groupby(by=[self.id_col]):
+            if _frame.iloc[0][self.object_type_col] == "AV":
+                continue
+            inp.append(_frame[[self.x_col, self.y_col]].to_numpy())
         inp = np.array(inp)
 
         # get prediction from model
