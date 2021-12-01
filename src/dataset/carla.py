@@ -3,6 +3,7 @@ import pickle
 import zlib
 
 import numpy as np
+import pandas as pd
 import torch
 import logging
 
@@ -56,15 +57,18 @@ def get_sub_map(args: utils.Args,
     if args.not_use_api:
         pass
     else:
-        # get lane polyline in radius <= max_distance (=50.0)
+        # get AGENT's heading
+        angle = mapping['angle']
+
+        # get center_lane (waypoint) polyline in radius <= max_distance (=50.0)
         # with origin is AGENT's position after 2s
         # list lane_line in polygon (x, y)
         lane_ids, polygons = carla_helper.get_local_lanes(
-            agent_x=x, agent_y=y
+            agent_x=x, agent_y=y, heading=angle
         )
-
-        # get AGENT's heading
-        angle = mapping['angle']
+        # break if can not find local lane?
+        if len(polygons) == 0:
+            return None, None
 
         # rotate map to fit the agent's orientation
         for index_polygon, polygon in enumerate(polygons):
@@ -280,6 +284,9 @@ def preprocess(args, id2info, mapping):
             polyline_spans=polyline_spans,
             mapping=mapping
         )
+        # break if something wrong
+        if vectors is None:
+            return None
 
     # logging('len(vectors)', t, len(vectors), prob=0.01)
 
@@ -438,7 +445,6 @@ class Dataset(torch.utils.data.Dataset):
             if args.core_num >= 1:
                 #
                 for each_dir in data_dir:
-
                     root, dirs, cur_files = os.walk(each_dir).__next__()
                     self._files.extend([
                         os.path.join(each_dir, file) for file in cur_files
@@ -461,7 +467,11 @@ class Dataset(torch.utils.data.Dataset):
                 #     ]
                 for file in self._files:
                     print(file)
-                    self.ex_list.append(self._compress_file(file))
+                    compressed = self._compress_file(file)
+                    if compressed is not None:
+                        self.ex_list.append(compressed)
+                    else:
+                        print("skip")
 
             else:
                 assert False, "num_cores must > 0"
@@ -485,7 +495,8 @@ class Dataset(torch.utils.data.Dataset):
             return data_compress
 
         with open(file, "r", encoding='utf-8') as fin:
-            lines = fin.readlines()[1:]
+            lines = fin.readlines()[1:]  # skip header row
+
         # get carla data
         instance = carla_get_instance(
             lines, file, self.args
@@ -494,6 +505,7 @@ class Dataset(torch.utils.data.Dataset):
         if instance is not None:
             data_compress = zlib.compress(
                 pickle.dumps(instance))
+
         return data_compress
 
     def __len__(self):
