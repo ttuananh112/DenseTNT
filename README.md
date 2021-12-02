@@ -96,6 +96,8 @@ bash comparision.sh
 bash inference.sh
 ```
 
+#### [Models](https://vingroupjsc.sharepoint.com/sites/Vantix-PAAS/Shared%20Documents/Prediction/models)
+
 
 ## Citation
 If you find our work useful for your research, please consider citing the paper:
