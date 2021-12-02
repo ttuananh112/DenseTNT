@@ -66,8 +66,7 @@ Results on Argoverse motion forecasting validation set:
 </table>
 
 ## Models
-
-Suppose the training data of Argoverse motion forecasting is at ```./train/data/```.
+[Path to models](https://vingroupjsc.sharepoint.com/sites/Vantix-PAAS/Shared%20Documents/Prediction/models)
 
 ### DenseTNT
 
@@ -95,8 +94,6 @@ bash comparision.sh
 ```bash
 bash inference.sh
 ```
-
-#### [Models](https://vingroupjsc.sharepoint.com/sites/Vantix-PAAS/Shared%20Documents/Prediction/models)
 
 
 ## Citation
