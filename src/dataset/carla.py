@@ -17,6 +17,7 @@ from utils import (
 
 from dataset.carla_helper import MapHelper
 from concurrent.futures import ProcessPoolExecutor
+from dataset.augmentation import flip_vertically
 
 TIMESTAMP = 0
 TRACK_ID = 1
@@ -466,12 +467,14 @@ class Dataset(torch.utils.data.Dataset):
                 #         )
                 #     ]
                 for file in self._files:
-                    print(file)
                     compressed = self._compress_file(file)
                     if compressed is not None:
-                        self.ex_list.append(compressed)
+                        if isinstance(compressed, list):
+                            self.ex_list.extend(compressed)
+                        else:
+                            self.ex_list.append(compressed)
                     else:
-                        print("skip")
+                        continue
 
             else:
                 assert False, "num_cores must > 0"
@@ -503,8 +506,16 @@ class Dataset(torch.utils.data.Dataset):
         )
 
         if instance is not None:
-            data_compress = zlib.compress(
-                pickle.dumps(instance))
+            data_compress = list()
+            data_compress.append(
+                zlib.compress(pickle.dumps(instance))
+            )
+
+            # do augment...
+            aug_instance = flip_vertically(instance.copy())
+            data_compress.append(
+                zlib.compress(pickle.dumps(aug_instance))
+            )
 
         return data_compress
 
